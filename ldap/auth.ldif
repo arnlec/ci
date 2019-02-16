@@ -1,0 +1,30 @@
+version: 1
+
+dn: ou=people,dc=example,dc=com
+objectClass: organizationalunit
+objectClass: top
+ou: users
+
+dn: ou=group,dc=example,dc=com
+objectClass: organizationalunit
+objectClass: top
+ou: groups
+
+dn: uid=administrator,ou=people,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: Administrator
+sn: Administrator
+displayName: Administrator
+mail: admin@forge.local
+uid: administrator
+userPassword:: e01ENX1YMDNNTzFxblpkWWRneWZldUlMUG1RPT0=
+
+dn: cn=admin,ou=group,dc=example,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: admin
+member: uid=administrator,ou=people,dc=example,dc=com
+

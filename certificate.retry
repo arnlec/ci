@@ -1,0 +1,7 @@
+artifactory.forge.local
+db.forge.local
+gitlab.forge.local
+jenkins.forge.local
+redmine.forge.local
+sonarqube.forge.local
+squashtm.forge.local

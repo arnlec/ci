@@ -1,0 +1,8 @@
+[all]
+jenkins.forge.local
+sonarqube.forge.local
+gitlab.forge.local
+artifactory.forge.local
+redmine.forge.local
+squashtm.forge.local
+db.forge.local

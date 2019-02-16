@@ -1,0 +1,60 @@
+--- 
+- hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+    - fail:
+        msg: "Unsupported distribution: {{ansible_distribution}}"
+      when:
+        - ansible_distribution != "Debian"
+        - ansible_distribution != "Ubuntu"
+
+    - name: Install prerequisites
+      apt:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - python-openssl
+        - python-lxml
+      when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+
+
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: generate ssl key
+      openssl_privatekey:
+        path: "./httpd/{{inventory_hostname}}.key"
+        force: true
+      delegate_to: localhost
+
+    - name: generate certificate request
+      openssl_csr:
+        path: "./{{inventory_hostname}}.csr"
+        privatekey_path: "./httpd/{{inventory_hostname}}.key"
+        common_name: "{{inventory_hostname}}"
+      delegate_to: localhost
+
+    - name: generate extfile
+      template:
+        src: extfile.conf.j2
+        dest: "{{inventory_hostname}}-extfile.conf"
+      delegate_to: localhost
+    
+    - name: generate certificate
+      shell: "openssl x509 -req -days 365 -in {{inventory_hostname}}.csr -CA ./ca.crt -CAkey ./ca.key -set_serial 0x$(openssl rand -hex 16) -out httpd/{{inventory_hostname}}.crt -extfile {{inventory_hostname}}-extfile.conf"
+      delegate_to: localhost
+
+    - name: remove temporary files
+      file:
+        path: "{{item}}"
+        state: absent
+      with_items:
+        - "./{{inventory_hostname}}.csr"
+        - "./{{inventory_hostname}}-extfile.conf"
+      delegate_to: localhost
+
+
+

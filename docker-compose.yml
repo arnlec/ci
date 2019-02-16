@@ -1,0 +1,148 @@
+version: '2'
+services:
+  ldap:
+    build: ldap
+    # restart: always
+    networks:
+      - app_net
+    volumes:
+      - ldap_data:/var/lib/ldap
+    ports:
+      - 389:389
+  httpd:
+    build: httpd
+    restart: always
+    networks:
+      app_net:
+        aliases:
+          - auth.forge.local
+          - jenkins.forge.local
+          - sonarqube.forge.local
+          - gitlab.forge.local
+          - artifactory.forge.local
+          - redmine.forge.local
+          - squashtm.forge.local
+          - db.forge.local
+  proxy:
+    build: proxy
+    # restart: always
+    ports:
+      - 8080:3128
+    networks:
+      - app_net
+  db:
+    build: db
+    # restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    networks:
+      - app_net
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  # dbadmin:
+  #   image: adminer
+  #   networks:
+  #     - app_net
+  jenkins:
+    build: jenkins
+    # restart: always
+    networks:
+      - app_net
+    volumes:
+      - jenkins_data:/var/jenkins_home
+  sonarqube:
+    build: sonarqube
+    # restart: always
+    depends_on: 
+      - db
+    environment:
+      SONARQUBE_JDBC_USERNAME: sonar
+      SONARQUBE_JDBC_PASSWORD: password
+      SONARQUBE_JDBC_URL: 'jdbc:postgresql://db/sonar'
+    networks:
+      - app_net
+  artifactory:
+    build: artifactory
+    # restart: always
+    networks:
+      - app_net
+    depends_on:
+      - db
+    volumes:
+      - artifactory_data:/var/opt/jfrog/artifactory/data
+    ulimits:
+      nofile:
+        soft: 20000
+        hard: 40000
+  # redmine:
+  #   image: redmine:3
+  #   networks:
+  #     - app_net
+  #   depends_on: 
+  #     - db
+  #   environment:
+  #     REDMINE_DB_POSTGRES: db
+  #     REDMINE_DB_USERNAME: redmine
+  #     REDMINE_DB_PASSWORD: password
+  #     REDMINE_DB_DATABASE: redmine
+  # squashtm:
+  #   build: squashtm
+  #   networks:
+  #     - app_net
+  #   depends_on:
+  #     - db
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    # restart: always
+    depends_on: 
+      - db
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab'
+        letsencrypt['enable'] = false
+        gitlab_rails['gitlab_email_enabled'] = true
+        gitlab_rails['gitlab_email_from'] = 'ihc-adv.ericsson@orange.com'
+        gitlab_rails['gitlab_email_display_name'] = 'Gitlab MELA Labs'
+        gitlab_rails['gitlab_email_reply_to'] = 'noreply@ericsson.com'
+        gitlab_rails['gitlab_email_subject_suffix'] = ''
+        gitlab_rails['gitlab_default_can_create_group'] = false
+        gitlab_rails['gitlab_username_changing_enabled'] = true
+        gitlab_rails['ldap_enabled'] = true
+        gitlab_rails['ldap_servers'] = {
+        'main' => {
+          'label' => 'LDAP',
+          'host' =>  'ldap',
+          'port' => 389,
+          'uid' => 'uid',
+          'encryption' => 'plain',
+          'verify_certificates' => false,
+          'bind_dn' => 'cn=admin,dc=example,dc=com',
+          'password' => 'password',
+          'active_directory' => false,
+          'base' => 'ou=people,dc=example,dc=com',
+          'group_base' => 'ou=group,dc=example,dc=com',
+          'admin_group' => 'admin'
+          }
+        }
+        postgresql['enable'] = false
+        gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_encoding'] = 'utf8'
+        gitlab_rails['db_host'] = 'db'
+        gitlab_rails['db_port'] = 5432
+        gitlab_rails['db_username'] = 'gitlab'
+        gitlab_rails['db_password'] = 'password'
+    networks:
+      - app_net
+    volumes:
+      - gitlab_data:/var/opt/gitlab
+
+networks:
+  app_net:
+
+volumes:
+  gitlab_data:
+  artifactory_data:
+  jenkins_data:
+  db_data:
+  ldap_data:
